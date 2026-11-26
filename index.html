@@ -63,7 +63,31 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 form{display:flex;flex-direction:column;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 @media (max-width:460px){.grid2{grid-template-columns:1fr}.plate{grid-template-columns:1fr}}
-label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:500;min-width:0}
+label{display:grid;grid-template-columns:auto 1fr;column-gap:4px;row-gap:4px;align-items:center;font-size:13px;font-weight:500;min-width:0}
+label > input,label > select,label > textarea{grid-column:1/-1}
+label.inline{display:flex;flex-direction:row;align-items:center;gap:8px;font-weight:400}
+input[type=date]{-webkit-appearance:none;appearance:none;display:block;min-height:44px;max-width:100%;text-align:left}
+input[type=date]::-webkit-date-and-time-value{text-align:left}
+.phbox{display:flex;flex-direction:column;gap:6px}
+.phbox .lbl{font-size:13px;font-weight:500}
+.ph-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.ph{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--line);background:var(--bg)}
+.ph img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in}
+.ph .x{position:absolute;top:4px;right:4px;min-height:0;width:28px;height:28px;padding:0;border-radius:50%;background:#000a;color:#fff;border:0;font-size:16px;line-height:28px}
+.ph .draw{position:absolute;left:4px;bottom:4px;min-height:0;padding:3px 8px;font-size:12px;border-radius:6px;background:#000a;color:#fff;border:0}
+.ph-add{aspect-ratio:1;border:1px dashed var(--line);border-radius:8px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:12px;color:var(--muted);cursor:pointer;padding:4px}
+.ph-add input{position:absolute;width:1px;height:1px;opacity:0}
+.ph-row{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}
+.ph-row img{width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid var(--line);cursor:zoom-in}
+.ov{position:fixed;inset:0;z-index:30;background:#0b0d0c;display:flex;flex-direction:column;
+  padding:calc(8px + env(safe-area-inset-top,0px)) max(10px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px));gap:8px}
+.ov .stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+.ov canvas,.ov .stage img{max-width:100%;max-height:100%;touch-action:none;border-radius:6px}
+.ov .bar2{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.ov .bar2 button{min-height:44px;background:#222;color:#fff;border-color:#444}
+.ov .bar2 button.on{background:#e53935;border-color:#e53935}
+.ov .bar2 button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.ov .hint{color:#ccc;font-size:13px;text-align:center;margin:0}
 label .req{color:var(--danger)}
 input,select,textarea{font:inherit;font-size:16px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%;min-width:0}
 textarea{min-height:72px;resize:vertical}
@@ -91,7 +115,7 @@ textarea{min-height:72px;resize:vertical}
 .iv .acts{grid-column:1/-1;display:flex;gap:4px;flex-wrap:wrap}
 .checks{display:flex;flex-direction:column;gap:8px;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:0}
 .checks legend{font-size:13px;font-weight:500;padding:0 4px}
-.checks label{flex-direction:row;align-items:center;gap:8px;font-weight:400;font-size:15px}
+.checks label{display:flex;flex-direction:row;align-items:center;gap:8px;font-weight:400;font-size:15px}
 .checks input{width:20px;height:20px;flex:none}
 .card.has-thumb{grid-template-columns:56px minmax(0,1fr) auto}
 .card.has-thumb .meta{grid-column:2/-1}
@@ -258,7 +282,7 @@ button,.card,.filebtn{touch-action:manipulation;-webkit-tap-highlight-color:tran
     const when = left == null ? '' : left < 0 ? 'skulle vara klart '+t.due : left === 0 ? 'klart i dag' : 'klart senast '+t.due;
     const sub = [showMachine && m ? m.name : '', when].filter(Boolean).join(' · ');
     return '<div class="item tdi"><span class="bar '+st+'"></span>'
-      + '<button class="txt" data-act="editTodo" data-id="'+esc(t.id)+'"><b>'+esc(t.text)+'</b>'+(sub?'<span>'+esc(sub)+'</span>':'')+'</button>'
+      + '<span class="txt"><button class="txt" data-act="editTodo" data-id="'+esc(t.id)+'"><b>'+esc(t.text)+'</b>'+(sub?'<span>'+esc(sub)+'</span>':'')+'</button>'+phThumbs(t.photos)+'</span>'
       + (canWrite?'<button data-act="doneTodo" data-id="'+esc(t.id)+'">Klar</button>':'') + '</div>';
   }
   let loadedM = false, loadedS = false;
@@ -429,6 +453,7 @@ button,.card,.filebtn{touch-action:manipulation;-webkit-tap-highlight-color:tran
           + (bits.length?'<span class="det">'+bits.join(' · ')+'</span>':'')
           + (s.parts?'<span class="det"><span>Delar:</span> '+esc(s.parts)+'</span>':'')
           + (s.next?'<span class="det"><span>Nästa gång:</span> '+esc(s.next)+'</span>':'')
+          + phThumbs(s.photos)
           + '</div>';
       }
       h += '</div>';
@@ -480,7 +505,7 @@ button,.card,.filebtn{touch-action:manipulation;-webkit-tap-highlight-color:tran
       + '<div class="grid2">' + inp('m_year','Årsmodell',m.year,{mode:'numeric',ph:'2019'}) + inp('m_purchased','Inköpsdatum',m.purchased,{type:'date'}) + '</div>'
       + (assets ? '<div class="photoedit">'+(m.photoId?'<img alt="Nuvarande foto" src="'+esc(photoUrl(m.photoId))+'">':'')
           + '<div class="col"><label for="m_photo">Foto på maskinen'+'<input id="m_photo" type="file" accept="image/*"></label>'
-          + (m.photoId?'<label for="m_nophoto" style="flex-direction:row;align-items:center;gap:8px;font-weight:400"><input type="checkbox" id="m_nophoto" style="width:20px;height:20px">Ta bort fotot</label>':'')
+          + (m.photoId?'<label for="m_nophoto" class="inline"><input type="checkbox" id="m_nophoto" style="width:20px;height:20px">Ta bort fotot</label>':'')
           + '</div></div>' : '')
       + inp('m_location','Plats',m.location,{ph:'Verkstad, bod 2'})
       + inp('m_notes','Anteckningar',m.notes,{area:true})
@@ -496,6 +521,7 @@ button,.card,.filebtn{touch-action:manipulation;-webkit-tap-highlight-color:tran
   function renderServiceForm(){
     const m = findM(state.id);
     const s = state.editId ? services.find(x=>x.id===state.editId) || {} : {date:today(), kind:(state.preIv?'Service':'Reparation'), hours:m && m.hours, intervalIds: state.preIv ? [state.preIv] : []};
+    formPhotos = (s.photos || []).slice();
     const mivs = (m && m.intervals) || [];
     const checks = mivs.length ? '<fieldset class="checks"><legend>Den här posten gäller</legend>' + mivs.map(iv => '<label for="c_'+esc(iv.id)+'"><input type="checkbox" id="c_'+esc(iv.id)+'" data-iv="'+esc(iv.id)+'"'+((s.intervalIds||[]).includes(iv.id)?' checked':'')+'>'+esc(iv.name)+'</label>').join('') + '</fieldset>' : '';
     let h = '<div class="wrap" style="padding:0"><button class="ghost back" data-act="backMachine">← '+esc(m?m.name:'Tillbaka')+'</button>';
@@ -506,6 +532,7 @@ button,.card,.filebtn{touch-action:manipulation;-webkit-tap-highlight-color:tran
       + '<label for="s_kind">Typ av åtgärd <span class="req">*</span><select id="s_kind" name="s_kind">'+opts+'</select></label></div>'
       + checks
       + inp('s_desc','Beskrivning',s.desc,{area:true,ph:'Bytt motorolja och oljefilter'})
+      + phBox()
       + '<div class="grid2">' + inp('s_hours','Drifttimmar vid service (h)',s.hours,{mode:'decimal'}) + inp('s_cost','Kostnad (kr)',s.cost,{mode:'decimal'}) + '</div>'
       + inp('s_parts','Delar och material',s.parts,{ph:'Oljefilter, 15 l motorolja'})
       + inp('s_by','Utförd av',s.by,{ph:'Egen personal eller verkstadens namn'})
@@ -570,7 +597,7 @@ button,.card,.filebtn{touch-action:manipulation;-webkit-tap-highlight-color:tran
     const date = val('s_date'); if (!date) return formErr('Ange ett datum.');
     const data = { machineId:state.id, date, kind:val('s_kind'), desc:val('s_desc'), hours:num(val('s_hours')), cost:num(val('s_cost')),
       parts:val('s_parts'), by:val('s_by'), next:val('s_next'),
-      intervalIds: Array.from(document.querySelectorAll('#sform [data-iv]')).filter(c=>c.checked).map(c=>c.dataset.iv) };
+      intervalIds: Array.from(document.querySelectorAll('#sform [data-iv]')).filter(c=>c.checked).map(c=>c.dataset.iv), photos: formPhotos.slice() };
     busy = true;
     try{
       if (state.editId) await db.doc('services/'+state.editId).update(data);
@@ -633,12 +660,14 @@ button,.card,.filebtn{touch-action:manipulation;-webkit-tap-highlight-color:tran
   }
   function renderTodoForm(){
     const t = state.editId ? todos.find(x=>x.id===state.editId) || {} : {machineId: state.id};
+    formPhotos = (t.photos || []).slice();
     let h = '<div class="wrap" style="padding:0"><button class="ghost back" data-act="backFrom">← Tillbaka</button>';
     h += '<h2>'+(state.editId?'Ändra att göra':'Ny att göra-punkt')+'</h2>';
     if (!machines.length){ $view.innerHTML = h + '<div class="empty"><strong>Lägg till en maskin först</strong><span>Varje punkt hör till en maskin.</span><button class="primary" data-act="newMachine">Lägg till maskin</button></div></div>'; return; }
     h += '<form id="tform" novalidate>'
       + '<label for="t_machine">Maskin <span class="req">*</span><select id="t_machine">'+machineOptions(t.machineId)+'</select></label>'
       + inp('t_text','Vad ska göras',t.text,{required:true,area:true,ph:'Byt hydraulslang vid frontlastaren'})
+      + phBox()
       + inp('t_due','Klart senast',t.due,{type:'date'})
       + '<p class="note">När du trycker Klar på en punkt sparas den som en reparation i maskinens historik.</p>'
       + '<p class="status" id="formStatus" hidden></p>'
@@ -652,7 +681,7 @@ button,.card,.filebtn{touch-action:manipulation;-webkit-tap-highlight-color:tran
   async function saveTodo(ev){
     ev.preventDefault(); if (busy || !db) return;
     const text = val('t_text'); if (!text) return formErr('Skriv vad som ska göras.');
-    const data = {machineId: document.getElementById('t_machine').value, text, due: val('t_due')};
+    const data = {machineId: document.getElementById('t_machine').value, text, due: val('t_due'), photos: formPhotos.slice()};
     busy = true;
     try{
       if (state.editId) await db.doc('todos/'+state.editId).update(data);
@@ -673,7 +702,7 @@ button,.card,.filebtn{touch-action:manipulation;-webkit-tap-highlight-color:tran
     busy = true;
     try{
       await db.collection('services').add({machineId:t.machineId, date:today(), kind:'Reparation', desc:t.text, hours:m && m.hours!=null ? m.hours : null,
-        cost:null, parts:'', by:'', next:'', intervalIds:[], fromTodo:id, createdAt:Date.now()});
+        cost:null, parts:'', by:'', next:'', intervalIds:[], photos:(t.photos||[]).slice(), fromTodo:id, createdAt:Date.now()});
       await db.doc('todos/'+id).update({done:true, doneAt:Date.now()});
       setStatus('Klar. "'+t.text+'" ligger nu i historiken för '+(m?m.name:'maskinen')+', där du kan fylla i kostnad och delar.');
       setTimeout(()=>setStatus(''), 6000);
@@ -750,6 +779,7 @@ button,.card,.filebtn{touch-action:manipulation;-webkit-tap-highlight-color:tran
     $view.innerHTML = h + '</div>';
   }
   $view.addEventListener('change', ev => {
+    if (ev.target.id === 'phFile'){ const f = ev.target.files[0]; ev.target.value = ''; if (f) addPhotoFrom(f); return; }
     if (!imp || state.screen !== 'import') return;
     const el = ev.target;
     if (el.dataset && el.dataset.map){ imp.map[el.dataset.map] = Number(el.value); render(); }
@@ -817,6 +847,16 @@ button,.card,.filebtn{touch-action:manipulation;-webkit-tap-highlight-color:tran
           doc.text(txt, L + 8, y);
           y += txt.length * 5;
           if (t.due){ doc.setFontSize(9); doc.setTextColor(110); doc.text('Klart senast ' + t.due, L + 8, y); doc.setTextColor(20); doc.setFontSize(11); y += 4.5; }
+          if (t.photos && t.photos.length){
+            const box = 40, gap = 4; page(box + 6); let x = L + 8; y += 2;
+            for (const id of t.photos.slice(0, MAXPH)){
+              const pd = await photoData(id); if (!pd) continue;
+              const r = Math.min(box/pd.w, box/pd.h), w = pd.w*r, h = pd.h*r;
+              try{ doc.addImage(pd.url, 'JPEG', x, y, w, h); doc.setDrawColor(200); doc.rect(x, y, w, h); }catch(_){}
+              x += box + gap;
+            }
+            y += box + 2;
+          }
           y += 3;
         }
       } else { for (let i = 0; i < 4; i++){ y += 8; line(y); } }
@@ -855,6 +895,85 @@ button,.card,.filebtn{touch-action:manipulation;-webkit-tap-highlight-color:tran
     busy = false;
   }
 
+  // ---- Bilder med markering (max 4 per post) ----
+  const MAXPH = 4;
+  let formPhotos = [];
+  function phThumbs(ids){ return (ids&&ids.length) ? '<div class="ph-row">'+ids.map(id=>'<img alt="Bild" data-view="'+esc(id)+'" src="'+esc(photoUrl(id))+'">').join('')+'</div>' : ''; }
+  function phBox(){
+    return '<div class="phbox"><span class="lbl">Bilder ('+formPhotos.length+' av '+MAXPH+')</span><div class="ph-grid" id="phEdit">'+phTiles()+'</div>'
+      + '<span class="note">Ta eller välj en bild, och ringa in eller peka ut var felet finns.</span></div>';
+  }
+  function phTiles(){
+    let h = formPhotos.map((id,i)=>'<div class="ph"><img alt="Bild '+(i+1)+'" data-view="'+esc(id)+'" src="'+esc(photoUrl(id))+'"><button type="button" class="x" data-act="phDel" data-i="'+i+'" aria-label="Ta bort bild">×</button><button type="button" class="draw" data-act="phDraw" data-i="'+i+'">Rita</button></div>').join('');
+    if (formPhotos.length < MAXPH && assets) h += '<label class="ph-add" for="phFile">+ Lägg till bild<input id="phFile" type="file" accept="image/*"></label>';
+    if (!assets && !formPhotos.length) h += '<span class="note" style="grid-column:1/-1">Bilder kan bara läggas till av den som får redigera appen.</span>';
+    return h;
+  }
+  function drawPhEdit(){ const el = document.getElementById('phEdit'); if (el){ el.innerHTML = phTiles(); const l = el.parentElement.querySelector('.lbl'); if (l) l.textContent = 'Bilder ('+formPhotos.length+' av '+MAXPH+')'; } }
+  async function uploadMarked(blob){ const up = await assets.upload(blob); return up.id; }
+
+  function loadImg(src){ return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; }); }
+  // Ritverktyg: ring, pil och penna i rött. Resultatet bakas in i bilden.
+  function markEditor(src){
+    return new Promise(async (resolve) => {
+      let im; try{ im = await loadImg(src); }catch(_){ resolve(null); return; }
+      const sc = Math.min(1, 1600/Math.max(im.naturalWidth, im.naturalHeight));
+      const cv = document.createElement('canvas'); cv.width = Math.round(im.naturalWidth*sc); cv.height = Math.round(im.naturalHeight*sc);
+      const cx = cv.getContext('2d'); const lw = Math.max(4, Math.round(Math.max(cv.width, cv.height)/120));
+      let tool = 'ring', shapes = [], cur = null;
+      const ov = document.createElement('div'); ov.className = 'ov'; ov.setAttribute('role','dialog'); ov.setAttribute('aria-label','Markera felet');
+      ov.innerHTML = '<p class="hint">Dra med fingret för att markera var felet finns.</p><div class="stage"></div>'
+        + '<div class="bar2"><button type="button" data-t="ring" class="on">Ring</button><button type="button" data-t="pil">Pil</button><button type="button" data-t="penna">Penna</button><button type="button" data-a="undo">Ångra</button></div>'
+        + '<div class="bar2"><button type="button" data-a="cancel">Avbryt</button><button type="button" data-a="ok" class="primary">Klar</button></div>';
+      ov.querySelector('.stage').appendChild(cv); document.body.appendChild(ov);
+      function drawShape(sh){
+        cx.strokeStyle = '#e53935'; cx.fillStyle = '#e53935'; cx.lineWidth = lw; cx.lineCap = 'round'; cx.lineJoin = 'round';
+        if (sh.t === 'ring'){ const x = (sh.a.x+sh.b.x)/2, y = (sh.a.y+sh.b.y)/2, rx = Math.abs(sh.b.x-sh.a.x)/2, ry = Math.abs(sh.b.y-sh.a.y)/2; if (rx<2&&ry<2) return; cx.beginPath(); cx.ellipse(x, y, Math.max(rx,2), Math.max(ry,2), 0, 0, Math.PI*2); cx.stroke(); }
+        else if (sh.t === 'pil'){ const ang = Math.atan2(sh.b.y-sh.a.y, sh.b.x-sh.a.x), hl = lw*4; cx.beginPath(); cx.moveTo(sh.a.x, sh.a.y); cx.lineTo(sh.b.x, sh.b.y); cx.stroke();
+          cx.beginPath(); cx.moveTo(sh.b.x, sh.b.y); cx.lineTo(sh.b.x - hl*Math.cos(ang-0.45), sh.b.y - hl*Math.sin(ang-0.45)); cx.lineTo(sh.b.x - hl*Math.cos(ang+0.45), sh.b.y - hl*Math.sin(ang+0.45)); cx.closePath(); cx.fill(); }
+        else { cx.beginPath(); sh.pts.forEach((p,i) => i ? cx.lineTo(p.x,p.y) : cx.moveTo(p.x,p.y)); cx.stroke(); }
+      }
+      function redraw(){ cx.drawImage(im, 0, 0, cv.width, cv.height); shapes.forEach(drawShape); if (cur) drawShape(cur); }
+      redraw();
+      const pos = e => { const r = cv.getBoundingClientRect(); return {x:(e.clientX-r.left)*cv.width/r.width, y:(e.clientY-r.top)*cv.height/r.height}; };
+      cv.addEventListener('pointerdown', e => { e.preventDefault(); cv.setPointerCapture(e.pointerId); const p = pos(e); cur = tool==='penna' ? {t:'penna', pts:[p]} : {t:tool, a:p, b:p}; redraw(); });
+      cv.addEventListener('pointermove', e => { if (!cur) return; const p = pos(e); if (cur.t==='penna') cur.pts.push(p); else cur.b = p; redraw(); });
+      const end = () => { if (cur){ shapes.push(cur); cur = null; redraw(); } };
+      cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+      ov.addEventListener('click', e => {
+        const b = e.target.closest('button'); if (!b) return;
+        if (b.dataset.t){ tool = b.dataset.t; ov.querySelectorAll('[data-t]').forEach(x => x.classList.toggle('on', x===b)); }
+        else if (b.dataset.a === 'undo'){ shapes.pop(); redraw(); }
+        else if (b.dataset.a === 'cancel'){ ov.remove(); resolve(null); }
+        else if (b.dataset.a === 'ok'){ cv.toBlob(bl => { ov.remove(); resolve(bl); }, 'image/jpeg', 0.85); }
+      });
+    });
+  }
+  function viewPhoto(id){
+    const ov = document.createElement('div'); ov.className = 'ov';
+    ov.innerHTML = '<div class="stage"><img alt="Bild" src="'+esc(photoUrl(id))+'"></div><div class="bar2"><button type="button" class="primary">Stäng</button></div>';
+    ov.addEventListener('click', e => { if (e.target.closest('button') || e.target === ov || e.target.classList.contains('stage')) ov.remove(); });
+    document.body.appendChild(ov);
+  }
+  async function addPhotoFrom(file){
+    if (!assets || formPhotos.length >= MAXPH) return;
+    const url = URL.createObjectURL(file);
+    const blob = await markEditor(url); URL.revokeObjectURL(url);
+    if (!blob) return;
+    try{ formErr('Sparar bilden …'); formPhotos.push(await uploadMarked(blob)); drawPhEdit(); const fs = document.getElementById('formStatus'); if (fs) fs.hidden = true; }
+    catch(e){ formErr(explain(e)); }
+  }
+  async function redrawPhoto(i){
+    const blob = await markEditor(photoUrl(formPhotos[i])); if (!blob) return;
+    try{ formErr('Sparar bilden …'); formPhotos[i] = await uploadMarked(blob); drawPhEdit(); const fs = document.getElementById('formStatus'); if (fs) fs.hidden = true; }
+    catch(e){ formErr(explain(e)); }
+  }
+  async function photoData(id){
+    try{ const b = await (await fetch(photoUrl(id))).blob(); const bmp = await createImageBitmap(b);
+      const url = await new Promise(r => { const f = new FileReader(); f.onload = () => r(f.result); f.readAsDataURL(b); });
+      return {url, w:bmp.width, h:bmp.height}; }catch(_){ return null; }
+  }
+
   async function deleteInterval(){
     if (busy) return; const m = findM(state.id);
     busy = true;
@@ -880,6 +999,7 @@ button,.card,.filebtn{touch-action:manipulation;-webkit-tap-highlight-color:tran
   }
 
   $view.addEventListener('click', ev => {
+    const vimg = ev.target.closest('img[data-view]'); if (vimg){ viewPhoto(vimg.dataset.view); return; }
     const b = ev.target.closest('[data-act]'); if (!b) return;
     const a = b.dataset.act;
     if (a==='list') go('list');
@@ -900,6 +1020,8 @@ button,.card,.filebtn{touch-action:manipulation;-webkit-tap-highlight-color:tran
     else if (a==='newTodo') go('todoForm',{id: b.dataset.id || null, from: state.screen==='machine' ? state.id : null});
     else if (a==='editTodo'){ const t = todos.find(x=>x.id===b.dataset.id); go('todoForm',{id:t&&t.machineId, editId:b.dataset.id, from: state.screen==='machine' ? state.id : null}); }
     else if (a==='doneTodo') doneTodo(b.dataset.id);
+    else if (a==='phDel'){ formPhotos.splice(Number(b.dataset.i),1); drawPhEdit(); }
+    else if (a==='phDraw') redrawPhoto(Number(b.dataset.i));
     else if (a==='workOrder'){ const m = findM(state.id); if (m) workOrder(m, openTodos().filter(t => t.machineId === m.id)); }
     else if (a==='workOrderTodo'){ const t = todos.find(x=>x.id===state.editId); const m = t && findM(t.machineId); if (m) workOrder(m, [t]); }
     else if (a==='askDeleteTodo'){ state.confirm='todo'; render(); }
