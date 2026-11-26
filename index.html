@@ -134,6 +134,13 @@ form.backup{border-top:1px solid var(--line);padding-top:16px;display:flex;flex-
 .hoursbox{display:flex;flex-direction:row;gap:8px 10px;align-items:flex-end;flex-wrap:wrap;padding:12px 14px}
 .hoursbox label{flex:1 1 140px}
 .hoursbox .note{flex-basis:100%}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border-radius:999px;min-height:36px;padding:6px 14px;font-size:14px}
+.chip span{color:var(--muted);font-variant-numeric:tabular-nums;margin-left:2px}
+.chip.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.chip.on span{color:inherit;opacity:.7}
+.cathead{margin-top:6px}
 html{-webkit-text-size-adjust:100%}
 button,.card,.filebtn{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .fab{display:none}
@@ -297,6 +304,19 @@ button,.card,.filebtn{touch-action:manipulation;-webkit-tap-highlight-color:tran
   const findM = id => machines.find(m => m.id === id);
   const uid = () => Math.random().toString(36).slice(2,10);
 
+  // ---- Kategorier ----
+  // Maskiner utan vald kategori sorteras efter sin typ, så att listan delas in direkt.
+  function catOf(m){
+    if (m.category) return m.category;
+    const t = (m.type||'') + ' ' + (m.name||''); const l = t.toLowerCase();
+    if (l.includes('pack') || l.includes('bosch') || l.includes('lösvikt')) return 'Packmaskiner';
+    if (l.includes('tvätt')) return 'Tvätt';
+    return 'Övrigt';
+  }
+  const catSort = (a,b) => (a==='Övrigt') - (b==='Övrigt') || a.localeCompare(b,'sv');
+  const allCats = () => [...new Set(['Packmaskiner','Tvätt'].concat(machines.map(catOf)))].sort(catSort);
+  let catFilter = null; try{ catFilter = localStorage.getItem('rb-cat'); }catch(_){}
+
   // Serviceintervall: nästa tillfälle räknas från senaste servicen som gällde intervallet,
   // annars från startvärdena som sparades när intervallet lades till. Det som kommer först gäller.
   function addMonths(ds, n){ const [y,m,d] = ds.split('-').map(Number); const t = new Date(y, m-1+n, 1); const last = new Date(t.getFullYear(), t.getMonth()+1, 0).getDate(); t.setDate(Math.min(d,last));
@@ -375,8 +395,15 @@ button,.card,.filebtn{touch-action:manipulation;-webkit-tap-highlight-color:tran
     if (!sorted.length){
       html += '<div class="empty"><strong>Inga maskiner än</strong><span>Varje maskin får ett eget kort med modell, serienummer och drifttimmar. Under kortet samlas all service som gjorts.</span>' + (canWrite ? '<button class="primary" data-act="newMachine">Lägg till din första maskin</button>' : '') + '</div>';
     } else {
+      const cats = [...new Set(sorted.map(catOf))].sort(catSort);
+      if (cats.length > 1){
+        html += '<div class="chips" role="tablist">' + ['Alla'].concat(cats).map(c => '<button type="button" class="chip'+((catFilter||'Alla')===c?' on':'')+'" data-act="cat" data-cat="'+esc(c)+'">'+esc(c)+' <span>'+(c==='Alla'?sorted.length:sorted.filter(m=>catOf(m)===c).length)+'</span></button>').join('') + '</div>';
+      }
+      const show = cats.filter(c => !catFilter || catFilter==='Alla' || c===catFilter || !cats.includes(catFilter));
+      for (const c of show){
+      if (cats.length > 1) html += '<h3 class="cathead">'+esc(c)+'</h3>';
       html += '<div class="list">';
-      for (const m of sorted){
+      for (const m of sorted.filter(x => catOf(x)===c)){
         const last = servicesFor(m.id)[0];
         const sub = [m.type, [m.make].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
         const w = machineWorst(m);
@@ -388,6 +415,7 @@ button,.card,.filebtn{touch-action:manipulation;-webkit-tap-highlight-color:tran
           + '</button>';
       }
       html += '</div>';
+      }
     }
     html += '</div>';
     $view.innerHTML = html;
@@ -500,7 +528,9 @@ button,.card,.filebtn{touch-action:manipulation;-webkit-tap-highlight-color:tran
     h += '<h2>'+(state.editId?'Redigera maskin':'Ny maskin')+'</h2>';
     h += '<form id="mform" novalidate>'
       + inp('m_name','Namn',m.name,{required:true,ph:'Traktor 1'})
-      + '<div class="grid2">' + inp('m_type','Typ',m.type,{ph:'Traktor, grävmaskin, motorsåg'}) + inp('m_make','Märke och modell',m.make,{ph:'Volvo EC220'}) + '</div>'
+      + '<label for="m_cat">Kategori<input id="m_cat" list="catlist" value="'+esc(m.category || (state.editId ? catOf(m) : (catFilter && catFilter!=='Alla' ? catFilter : '')))+'" placeholder="Packmaskiner, Tvätt …" autocomplete="off"></label>'
+      + '<datalist id="catlist">'+allCats().map(c=>'<option value="'+esc(c)+'">').join('')+'</datalist>'
+      + '<div class="grid2">' + inp('m_type','Typ',m.type,{ph:'Packmaskin, potatistvätt'}) + inp('m_make','Märke och modell',m.make,{ph:'Volvo EC220'}) + '</div>'
       + '<div class="grid2">' + inp('m_serial','Serienummer',m.serial) + inp('m_hours','Aktuella drifttimmar (h)',m.hours,{mode:'decimal'}) + '</div>'
       + '<div class="grid2">' + inp('m_year','Årsmodell',m.year,{mode:'numeric',ph:'2019'}) + inp('m_purchased','Inköpsdatum',m.purchased,{type:'date'}) + '</div>'
       + (assets ? '<div class="photoedit">'+(m.photoId?'<img alt="Nuvarande foto" src="'+esc(photoUrl(m.photoId))+'">':'')
@@ -575,7 +605,7 @@ button,.card,.filebtn{touch-action:manipulation;-webkit-tap-highlight-color:tran
   async function saveMachine(ev){
     ev.preventDefault(); if (busy || !db) return;
     const name = val('m_name'); if (!name) return formErr('Ange ett namn på maskinen.');
-    const data = { name, type:val('m_type'), make:val('m_make'), serial:val('m_serial'), hours:num(val('m_hours')),
+    const data = { name, category: val('m_cat') || 'Övrigt', type:val('m_type'), make:val('m_make'), serial:val('m_serial'), hours:num(val('m_hours')),
       year:val('m_year'), purchased:val('m_purchased'), location:val('m_location'), notes:val('m_notes') };
     busy = true;
     try{
@@ -1020,6 +1050,7 @@ button,.card,.filebtn{touch-action:manipulation;-webkit-tap-highlight-color:tran
     else if (a==='newTodo') go('todoForm',{id: b.dataset.id || null, from: state.screen==='machine' ? state.id : null});
     else if (a==='editTodo'){ const t = todos.find(x=>x.id===b.dataset.id); go('todoForm',{id:t&&t.machineId, editId:b.dataset.id, from: state.screen==='machine' ? state.id : null}); }
     else if (a==='doneTodo') doneTodo(b.dataset.id);
+    else if (a==='cat'){ catFilter = b.dataset.cat; try{ localStorage.setItem('rb-cat', catFilter); }catch(_){} render(); }
     else if (a==='phDel'){ formPhotos.splice(Number(b.dataset.i),1); drawPhEdit(); }
     else if (a==='phDraw') redrawPhoto(Number(b.dataset.i));
     else if (a==='workOrder'){ const m = findM(state.id); if (m) workOrder(m, openTodos().filter(t => t.machineId === m.id)); }
